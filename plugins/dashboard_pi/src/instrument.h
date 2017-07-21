@@ -88,10 +88,14 @@ enum
     OCPN_DBP_STC_TWS2 = 1 << 25,
     OCPN_DBP_STC_VLW1 = 1 << 26, // Trip Log
     OCPN_DBP_STC_VLW2 = 1 << 27,  // Sum Log
-    OCPN_DBP_STC_MDA = 1 << 28,  // Bareometic pressure
-    OCPN_DBP_STC_MCOG = 1 << 29,  // Magnetic Course over Ground
-	OCPN_DBP_STC_PITCH = 1 << 30, //Pitch
-	OCPN_DBP_STC_HEEL = 1 << 31   //Heel 
+    OCPN_DBP_STC_MDA = 2 << 27,  // Bareometic pressure
+    OCPN_DBP_STC_MCOG = 3 << 27,  // Magnetic Course over Ground
+	OCPN_DBP_STC_PITCH = 4 << 27, //Pitch
+	OCPN_DBP_STC_HEEL = 5 << 27,   //Heel 
+    OCPN_DBP_STC_VOLT = 6 << 27, //Battery Voltage  The lower 16 Bits are single bit selective due to some &ing with the bits, the upper arejust numbered. 
+    OCPN_DBP_STC_BCUR = 7 << 27, //Battery Current
+    OCPN_DBP_STC_PVP = 8 << 27, //Solar Panel Power
+    OCPN_DBP_STC_VPV = 9 << 27 //Solar Panel Voltage
 };
 
 class DashboardInstrument : public wxControl

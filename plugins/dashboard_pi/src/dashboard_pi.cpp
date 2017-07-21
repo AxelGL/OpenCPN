@@ -40,6 +40,7 @@
 #include "icons.h"
 #include "wxJSON/jsonreader.h"
 #include "wxJSON/jsonwriter.h"
+#include <stdio.h>
 
 wxFont *g_pFontTitle;
 wxFont *g_pFontData;
@@ -86,7 +87,7 @@ enum {
     ID_DBP_D_RSA, ID_DBP_I_SAT, ID_DBP_D_GPS, ID_DBP_I_PTR, ID_DBP_I_CLK, ID_DBP_I_SUN,
     ID_DBP_D_MON, ID_DBP_I_ATMP, ID_DBP_I_AWA, ID_DBP_I_TWA, ID_DBP_I_TWD, ID_DBP_I_TWS,
     ID_DBP_D_TWD, ID_DBP_I_HDM, ID_DBP_D_HDT, ID_DBP_D_WDH, ID_DBP_I_VLW1, ID_DBP_I_VLW2, ID_DBP_D_MDA, ID_DBP_I_MDA,ID_DBP_D_BPH, ID_DBP_I_FOS,
-	ID_DBP_M_COG, ID_DBP_I_PITCH, ID_DBP_I_HEEL, ID_DBP_D_AWA_TWA,
+	ID_DBP_M_COG, ID_DBP_I_PITCH, ID_DBP_I_HEEL, ID_DBP_D_AWA_TWA, ID_DBP_I_VOLT, ID_DBP_I_BCUR,ID_DBP_I_PVP,ID_DBP_I_VPV, 
     ID_DBP_LAST_ENTRY //this has a reference in one of the routines; defining a "LAST_ENTRY" and setting the reference to it, is one codeline less to change (and find) when adding new instruments :-)
 };
 
@@ -143,6 +144,14 @@ wxString getInstrumentCaption( unsigned int id )
             return _("Water Temp.");
         case ID_DBP_I_ATMP:
             return _("Air Temp.");
+        case ID_DBP_I_VOLT:
+            return _("Battery Voltage");
+        case ID_DBP_I_BCUR:
+            return _("Battery Current");
+        case ID_DBP_I_PVP:
+            return _("Solar Panel Power");
+        case ID_DBP_I_VPV:
+            return _("Solar Panel Voltage");
         case ID_DBP_I_AWA:
             return _("App. Wind Angle");
         case ID_DBP_I_TWA:
@@ -208,6 +217,10 @@ void getListItemForInstrument( wxListItem &item, unsigned int id )
     	case ID_DBP_I_MDA:
         case ID_DBP_I_TMP:
         case ID_DBP_I_ATMP:
+        case ID_DBP_I_VOLT:
+        case ID_DBP_I_BCUR:
+        case ID_DBP_I_PVP:
+        case ID_DBP_I_VPV:
         case ID_DBP_I_TWA:
         case ID_DBP_I_TWD:
         case ID_DBP_I_TWS:
@@ -225,6 +238,8 @@ void getListItemForInstrument( wxListItem &item, unsigned int id )
 		case ID_DBP_I_HEEL:
             item.SetImage( 0 );
             break;
+
+
         case ID_DBP_D_SOG:
         case ID_DBP_D_COG:
         case ID_DBP_D_AW:
@@ -1043,6 +1058,9 @@ void dashboard_pi::SetNMEASentence( wxString &sentence )
               * PressureTransducer = 'P',
               * FlowRateTransducer = 'R',
               * TachometerTransducer = 'T',
+              * Battery Voltage  = 'U'
+              * Photovoltaic Power  = 'W'
+              * Photovoltaic Voltage  = 'O'
               * VolumeTransducer = 'V'
              */
 
@@ -1055,6 +1073,23 @@ void dashboard_pi::SetNMEASentence( wxString &sentence )
                     if (m_NMEA0183.Xdr.TransducerInfo[i].TransducerType == _T("C")) {
                         SendSentenceToAllInstruments(OCPN_DBP_STC_ATMP, xdrdata , m_NMEA0183.Xdr.TransducerInfo[i].UnitOfMeasurement);
                     }
+                    // XDR Battery Voltage
+                    if (m_NMEA0183.Xdr.TransducerInfo[i].TransducerType == _T("U")) {
+                        SendSentenceToAllInstruments(OCPN_DBP_STC_VOLT, xdrdata , m_NMEA0183.Xdr.TransducerInfo[i].UnitOfMeasurement);
+                    }
+                    // XDR Panel Power 
+                    if (m_NMEA0183.Xdr.TransducerInfo[i].TransducerType == _T("W")) {
+                        SendSentenceToAllInstruments(OCPN_DBP_STC_PVP, xdrdata , m_NMEA0183.Xdr.TransducerInfo[i].UnitOfMeasurement);
+                    }
+                    // XDR Panel Power 
+                    if (m_NMEA0183.Xdr.TransducerInfo[i].TransducerType == _T("O")) {
+                        SendSentenceToAllInstruments(OCPN_DBP_STC_VPV, xdrdata , m_NMEA0183.Xdr.TransducerInfo[i].UnitOfMeasurement);
+                    }
+                    // XDR Battery Current
+                    if (m_NMEA0183.Xdr.TransducerInfo[i].TransducerType == _T("I")) {
+                        SendSentenceToAllInstruments(OCPN_DBP_STC_BCUR, xdrdata , m_NMEA0183.Xdr.TransducerInfo[i].UnitOfMeasurement);
+                    }
+
                     // XDR Pressure
                     if (m_NMEA0183.Xdr.TransducerInfo[i].TransducerType == _T("P")) {
                         if (m_NMEA0183.Xdr.TransducerInfo[i].UnitOfMeasurement == _T("B")) {
@@ -1064,8 +1099,7 @@ void dashboard_pi::SetNMEASentence( wxString &sentence )
                     }
                     // XDR Pitch (=Nose up/down) or Heel (stb/port)
                     if (m_NMEA0183.Xdr.TransducerInfo[i].TransducerType == _T("A")) {
-                        if (m_NMEA0183.Xdr.TransducerInfo[i].TransducerName == _T("PTCH")
-                            || m_NMEA0183.Xdr.TransducerInfo[i].TransducerName == _T("PITCH")) {
+                        if (m_NMEA0183.Xdr.TransducerInfo[i].TransducerName == _T("PTCH")) {
                             if (m_NMEA0183.Xdr.TransducerInfo[i].MeasurementData > 0) {
                                 xdrunit = _T("\u00B0 Nose up");
                             }
@@ -2416,6 +2450,22 @@ void DashboardWindow::SetInstrumentList( wxArrayInt list )
                 instrument = new DashboardInstrument_Single( this, wxID_ANY,
                         getInstrumentCaption( id ), OCPN_DBP_STC_ATMP, _T("%2.1f") );
                 break;
+            case ID_DBP_I_VOLT: //air temperature
+                instrument = new DashboardInstrument_Single( this, wxID_ANY,
+                        getInstrumentCaption( id ), OCPN_DBP_STC_VOLT, _T("%2.1f") );
+                break;
+            case ID_DBP_I_BCUR: //air temperature
+                instrument = new DashboardInstrument_Single( this, wxID_ANY,
+                        getInstrumentCaption( id ), OCPN_DBP_STC_BCUR, _T("%2.1f") );
+                break;
+            case ID_DBP_I_PVP: //Photovoltaic Power 
+                instrument = new DashboardInstrument_Single( this, wxID_ANY,
+                        getInstrumentCaption( id ), OCPN_DBP_STC_PVP , _T("%2.1f") );
+                break;
+            case ID_DBP_I_VPV: //Photovoltaic Voltage
+                instrument = new DashboardInstrument_Single( this, wxID_ANY,
+                        getInstrumentCaption( id ), OCPN_DBP_STC_VPV , _T("%2.1f") );
+                break;
             case ID_DBP_I_VLW1: // Trip Log
                 instrument = new DashboardInstrument_Single( this, wxID_ANY,
                         getInstrumentCaption( id ), OCPN_DBP_STC_VLW1, _T("%2.1f") );
@@ -2524,11 +2574,19 @@ void DashboardWindow::SetInstrumentList( wxArrayInt list )
     SetMinSize( itemBoxSizer->GetMinSize() );
 }
 
-void DashboardWindow::SendSentenceToAllInstruments( int st, double value, wxString unit )
+void DashboardWindow::SendSentenceToAllInstruments(int st, double value, wxString unit )
 {
     for( size_t i = 0; i < m_ArrayOfInstrument.GetCount(); i++ ) {
+//Axel        if( m_ArrayOfInstrument.Item( i )->m_cap_flag & st ) m_ArrayOfInstrument.Item( i )->m_pInstrument->SetData(
+       if (st < (1 << 27)) {
         if( m_ArrayOfInstrument.Item( i )->m_cap_flag & st ) m_ArrayOfInstrument.Item( i )->m_pInstrument->SetData(
                 st, value, unit );
+       }
+       else {
+         if( m_ArrayOfInstrument.Item( i )->m_cap_flag == st ) {
+            m_ArrayOfInstrument.Item( i )->m_pInstrument->SetData( st, value, unit );
+         }
+       }
     }
 }
 
